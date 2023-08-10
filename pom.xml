@@ -18,6 +18,8 @@
     <modules>
         <module>school-service</module>
         <module>user-service</module>
+        <module>discovery-service</module>
+        <module>gateway-service</module>
     </modules>
 
     <properties>
