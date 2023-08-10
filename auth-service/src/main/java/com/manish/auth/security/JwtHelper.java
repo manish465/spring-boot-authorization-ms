@@ -1,6 +1,7 @@
 package com.manish.auth.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -15,15 +16,11 @@ import java.util.function.Function;
 
 @Component
 public class JwtHelper {
-    public static final long JWT_TOKEN_VALIDITY = 5 * 60 * 60;
+    public static final long JWT_TOKEN_VALIDITY = 1000 * 60 * 60 * 10;
     private static final String SECRET = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
 
     public String getUsernameFromToken(String token){
         return getClaimFromToken(token, Claims::getSubject);
-    }
-
-    public Date getExpirationDateFromToken(String token){
-        return getClaimFromToken(token, Claims::getExpiration);
     }
 
     public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver){
@@ -40,9 +37,11 @@ public class JwtHelper {
                 .getBody();
     }
 
-    private boolean isTokenExpired(String token){
-        final Date expiration = getExpirationDateFromToken(token);
-        return expiration.before(new Date());
+    private boolean isTokenExpired(Claims claims){
+        long expirationTime = claims.getExpiration().getTime();
+        long currentTime = System.currentTimeMillis();
+
+        return currentTime < expirationTime;
     }
 
     public String generateToken(String username, String roles){
@@ -52,20 +51,27 @@ public class JwtHelper {
     }
 
     private String doGenerateToken(Map<String, String> claims, String subject){
-        return Jwts
-                .builder()
+        return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY * 1000))
-                .signWith(getSignKey(), SignatureAlgorithm.HS256)
-                .compact();
+                .setExpiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY))
+                .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
     }
 
-    public Boolean validateToken(String token, String validUsername){
-        final String username = getUsernameFromToken(token);
+    public Boolean validateToken(String token){
+        try{
+            Claims claims = Jwts
+                    .parserBuilder()
+                    .setSigningKey(getSignKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
 
-        return username.equals(validUsername) && !isTokenExpired(token);
+            return isTokenExpired(claims);
+        }catch (JwtException e){
+            return false;
+        }
     }
 
     private Key getSignKey() {
