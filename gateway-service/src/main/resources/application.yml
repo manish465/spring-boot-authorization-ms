@@ -33,3 +33,8 @@ spring:
           uri: lb://UserServiceMS
           predicates:
             - Path=/api/user/**
+
+        - id: AuthServiceMS
+          uri: lb://AuthServiceMS
+          predicates:
+            - Path=/api/auth/**
