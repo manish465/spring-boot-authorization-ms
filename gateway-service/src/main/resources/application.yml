@@ -1,0 +1,35 @@
+server:
+  port: 8000
+
+spring.application.name: GatewayServiceMS
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: DiscoveryServiceMS
+          uri: http://localhost:8761
+          predicates:
+            - Path=/eureka/web
+          filters:
+            - SetPath=/
+
+        - id: DiscoveryServiceMSStatic
+          uri: http://localhost:8761
+          predicates:
+            - Path=/eureka/**
+
+        - id: SchoolServiceMS
+          uri: lb://SchoolServiceMS
+          predicates:
+            - Path=/api/school/**
+
+        - id: UserServiceMS
+          uri: lb://UserServiceMS
+          predicates:
+            - Path=/api/user/**
